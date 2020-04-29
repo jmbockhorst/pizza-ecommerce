@@ -18,7 +18,7 @@ if(isset($_POST['size'])){
     $sauce = $_POST['sauce'];
     $cheese = $_POST['cheese'];
 
-    $sql = "INSERT INTO JMB_Pizza_Orders (pizza_size, pizza_toppings, pizza_sauce, pizza_cheese) VALUES ('{$size}', '{$toppings}', '{$sauce}', '{$cheese}')";
+    $sql = "INSERT INTO JMB_Pizza_Orders (pizza_size, pizza_toppings, pizza_sauce, pizza_cheese, order_created_time) VALUES ('{$size}', '{$toppings}', '{$sauce}', '{$cheese}', NOW())";
 
     if ($conn->query($sql) === FALSE) {
         echo "Error: " . $sql . "<br>" . $conn->error;
