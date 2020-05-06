@@ -11,3 +11,13 @@ CREATE TABLE IF NOT EXISTS `JMB_Pizza_Orders` (
   `order_delivered_time` datetime,
   PRIMARY KEY (`order_id`)
 );
+
+DROP TABLE IF EXISTS `JMB_Users`;
+
+CREATE TABLE IF NOT EXISTS `JMB_Users` (
+  `user_id` int AUTO_INCREMENT,
+  `username` varchar(100) NOT NULL,
+  `password` varchar(200) NOT NULL,
+  `employee` boolean NOT NULL,
+  PRIMARY KEY (`user_id`)
+);

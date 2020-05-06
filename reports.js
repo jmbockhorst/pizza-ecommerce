@@ -1,4 +1,5 @@
 const {
+    Button,
     Typography,
     TextField,
     Paper,
@@ -117,6 +118,7 @@ function App() {
 
     return (
         <div>
+            <Button variant="contained" href='orders.html' style={{ position: 'absolute' }} color="primary">{'<- Orders'}</Button>
             <Typography variant="h3" align="center">Toppings chart</Typography>
             <div id="toppingsChart"></div>
 

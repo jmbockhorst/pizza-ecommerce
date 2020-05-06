@@ -1,4 +1,5 @@
 const {
+    Button,
     Typography,
     TextField,
     Paper,
@@ -10,10 +11,30 @@ const {
     Checkbox
 } = MaterialUI;
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
 function App() {
     const [orders, setOrders] = React.useState([]);
 
-    React.useEffect(() => {
+    /** @type {[string, (username: string) => void]} */
+    const [username, setUsername] = React.useState('');
+
+    React.useEffect(async () => {
+        await handleRedirect();
         loadOrders();
     }, []);
 
@@ -44,9 +65,33 @@ function App() {
         loadOrders();
     }
 
+    async function handleRedirect() {
+        const username = getCookie('username');
+
+        if (!username) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        await axios.get('users.php').then(response => {
+            const users = response.data;
+            const user = users.find(user => user.username === username);
+
+            if (!parseInt(user?.employee)) {
+                window.location.href = 'orderPizza.html';
+            }
+
+            if (user) {
+                setUsername(user.username);
+            }
+        });
+    }
+
     return (
         <div>
             <Paper style={{ width: '60%', margin: '0 auto', padding: '20px' }}>
+                <Typography variant="body1" style={{ position: 'absolute' }}>{username}</Typography>
+                <Button variant="contained" href='reports.html' style={{ position: 'absolute', top: '70px' }}>Order Reports</Button>
                 <Typography variant="h2" align="center" style={styles.margin}>Pizza Orders</Typography>
 
                 <Table>

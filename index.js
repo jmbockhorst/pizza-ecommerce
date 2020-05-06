@@ -15,130 +15,148 @@ const {
     Fade
 } = MaterialUI;
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
 function App() {
-    /** @type {[string, (pizzaSize: string) => void]} */
-    const [size, setSize] = React.useState('small');
+    /** @type {[boolean, (showCreateAccount: boolean) => void]} */
+    const [showCreateAccount, setShowCreateAccount] = React.useState(false);
 
-    /** @type {[{[string]: boolean}, (toppings: {[string]: boolean}) => void]} */
-    const [toppings, setToppings] = React.useState({});
+    /** @type {[string, (username: string) => void]} */
+    const [username, setUsername] = React.useState('');
 
-    /** @type {[string, (sauce: string) => void]} */
-    const [sauce, setSauce] = React.useState('normal');
+    /** @type {[string, (password: string) => void]} */
+    const [password, setPassword] = React.useState('');
 
-    /** @type {[string, (pizzaSize: string) => void]} */
-    const [cheese, setCheese] = React.useState('normal');
+    /** @type {[string, (password2: string) => void]} */
+    const [password2, setPassword2] = React.useState('');
 
-    /** @type {[boolean, (loading: boolean) => void]} */
-    const [loading, setLoading] = React.useState(false);
+    /** @type {[string, (error: string) => void]} */
+    const [error, setError] = React.useState('');
 
-    /** @type {[boolean, (orderCompleted: boolean) => void]} */
-    const [orderCompleted, setOrderCompleted] = React.useState(false);
+    /** @type {[string, (successMessage: string) => void]} */
+    const [successMessage, setSuccessMessage] = React.useState('');
 
-    /** @type {[number, (waitTime: number) => void]} */
-    const [waitTime, setWaitTime] = React.useState(0);
 
-    function addTopping(checked, topping) {
-        setToppings({ ...toppings, [topping]: checked });
+    React.useEffect(() => {
+        handleRedirect();
+    }, []);
+
+    async function handleLogin() {
+        const data = new FormData();
+        data.append('username', username);
+        data.append('password', password);
+        const response = await axios.post("tryLogin.php", data);
+
+        if (response.data === "success") {
+            document.cookie = `username=${username}`;
+            handleRedirect();
+        } else {
+            setError("Invalid username/password combination");
+        }
     }
 
-    async function submitOrder() {
-        setLoading(true);
+    function handleRedirect() {
+        const username = getCookie('username');
 
-        const toppingsList = Object.keys(toppings).filter(key => toppings[key]).join();
+        if (!username) {
+            return;
+        }
+
+        axios.get('users.php').then(response => {
+            const users = response.data;
+            const user = users.find(user => user.username === username);
+
+            if (parseInt(user?.employee)) {
+                window.location.href = 'orders.html';
+            } else {
+                window.location.href = 'orderPizza.html';
+            }
+        });
+    }
+
+    function showCreateAccountPage(show) {
+        setUsername('');
+        setPassword('');
+        setError('');
+        setSuccessMessage('');
+        setShowCreateAccount(show);
+    }
+
+    async function handleCreateAccount() {
+        if (username === '') {
+            setError('Username cannot be empty');
+            return;
+        }
+
+        if (password === '') {
+            setError('Password cannot be empty');
+            return;
+        }
+
+        if (password !== password2) {
+            setError('Passwords do not match');
+            return;
+        }
 
         const data = new FormData();
-        data.append('size', size);
-        data.append('toppings', toppingsList);
-        data.append('sauce', sauce);
-        data.append('cheese', cheese);
+        data.append('username', username);
+        data.append('password', password);
+        await axios.post("createUser.php", data);
 
-        const response = await axios.post('submitOrder.php', data);
-        setWaitTime(parseInt(response.data));
-        setLoading(false);
-
-        setOrderCompleted(true);
-        setSize('small');
-        setToppings({});
-        setSauce('normal')
-        setCheese('normal');
+        showCreateAccountPage(false);
+        setSuccessMessage("Account created successfully");
     }
 
     const styles = {
         margin: {
             marginBottom: '20px',
         },
-        optionItem: {
-            margin: '0px auto',
-            width: '250px',
-            display: 'block',
-            fontSize: '20px'
-        },
-        optionHeader: {
-            marginTop: '20px',
-            fontSize: '30px'
-        }
     };
 
-    const numToppings = Object.keys(toppings).filter(key => toppings[key]).length;
-
-    const total = (size === 'small' ? 8 : size === 'medium' ? 12 : 16) + numToppings + (sauce === 'extra' ? 0.5 : 0) + (cheese === 'extra' ? 1 : 0);
-
     return (
-        <div>
+        <div style={{ textAlign: 'center' }}>
             <Paper style={{ width: '60%', margin: '0 auto', padding: '20px' }}>
-                <Typography variant="h2" align="center" style={styles.margin}>Order Pizza</Typography>
-
-                <Fade in={!orderCompleted} unmountOnExit>
+                <Fade in={!showCreateAccount} unmountOnExit timeout={{ enter: 600, exit: 0 }}>
                     <div>
-                        <FormLabel align="center" style={styles.optionHeader} component="legend">Size</FormLabel>
-                        <Select value={size} onChange={e => setSize(e.target.value)} style={styles.optionItem}>
-                            <MenuItem value="small">Small (10 inch), $8.00</MenuItem>
-                            <MenuItem value="medium">Medium (14 inch), $12.00</MenuItem>
-                            <MenuItem value="large">Large (18 inch), $16.00</MenuItem>
-                        </Select>
+                        <Typography variant="h2" align="center" style={styles.margin}>Login</Typography>
+                        <div style={{ width: '50%', margin: '10px auto' }}>
+                            <TextField label="Username" value={username} onChange={e => setUsername(e.target.value)} fullWidth style={styles.margin} />
+                            <TextField label="Password" value={password} onChange={e => setPassword(e.target.value)} type="password" fullWidth style={styles.margin} />
+                            <Button variant="contained" fullWidth onClick={handleLogin}>Login</Button>
+                            <Typography variant="body1" style={{ color: 'red' }}>{error}</Typography>
+                            <Typography variant="body1" style={{ color: 'green' }}>{successMessage}</Typography>
+                        </div>
 
-                        <FormLabel align="center" style={styles.optionHeader} component="legend">Toppings ($1.00 each)</FormLabel>
-                        <FormGroup style={{ width: '250px', margin: '0px auto' }}>
-                            <FormControlLabel
-                                control={<Checkbox checked={toppings.pepperoni} onChange={e => addTopping(e.target.checked, 'pepperoni')} />}
-                                label="Pepperoni" />
-                            <FormControlLabel
-                                control={<Checkbox checked={toppings.sausage} onChange={e => addTopping(e.target.checked, 'sausage')} />}
-                                label="Sausage" />
-                            <FormControlLabel
-                                control={<Checkbox checked={toppings.ham} onChange={e => addTopping(e.target.checked, 'ham')} />}
-                                label="Ham" />
-                        </FormGroup>
-
-                        <FormLabel component="legend" align="center" style={styles.optionHeader}>Sauce</FormLabel>
-                        <RadioGroup value={sauce} onChange={e => setSauce(e.target.value)} style={{ width: '250px', margin: '0px auto' }}>
-                            <FormControlLabel value="none" control={<Radio />} label="No Sauce" />
-                            <FormControlLabel value="normal" control={<Radio />} label="Normal Sauce" />
-                            <FormControlLabel value="extra" control={<Radio />} label="Extra Sauce (+ $0.50)" />
-                        </RadioGroup>
-
-                        <FormLabel component="legend" align="center" style={styles.optionHeader}>Cheese</FormLabel>
-                        <RadioGroup value={cheese} onChange={e => setCheese(e.target.value)} style={{ width: '250px', margin: '0px auto' }}>
-                            <FormControlLabel value="none" control={<Radio />} label="No Cheese" />
-                            <FormControlLabel value="normal" control={<Radio />} label="Normal Cheese" />
-                            <FormControlLabel value="extra" control={<Radio />} label="Extra Cheese (+ $1.00)" />
-                        </RadioGroup>
-
-                        <Typography variant="h5" align="center">Total: ${total.toFixed(2)}</Typography>
-
-                        <Button variant="contained" onClick={submitOrder} style={{ ...styles.optionItem, marginTop: '20px' }}>Submit Order</Button>
+                        <Button variant="contained" onClick={() => showCreateAccountPage(true)} style={{ marginTop: '40px' }}>Create account</Button>
                     </div>
                 </Fade>
-                <Fade in={orderCompleted} unmountOnExit>
+                <Fade in={showCreateAccount} unmountOnExit timeout={{ enter: 600, exit: 0 }}>
                     <div>
-                        <Typography variant="h5" align="center">Order completed successfully. Order will be ready in approx. {waitTime} minutes</Typography>
-                        <Button variant="contained" onClick={() => setOrderCompleted(false)} style={{ ...styles.optionItem, marginTop: '20px' }}>Order again</Button>
+                        <Typography variant="h2" align="center" style={styles.margin}>Create Account</Typography>
+                        <Button variant="contained" onClick={() => showCreateAccountPage(false)} style={{ float: 'left' }}>Back</Button>
+                        <div style={{ width: '50%', margin: '10px auto' }}>
+                            <TextField label="Username" value={username} onChange={e => setUsername(e.target.value)} fullWidth style={styles.margin} />
+                            <TextField label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} fullWidth style={styles.margin} />
+                            <TextField label="Password again" type="password" value={password2} onChange={e => setPassword2(e.target.value)} fullWidth style={styles.margin} />
+                            <Button variant="contained" onClick={handleCreateAccount}>Create account</Button>
+                            <Typography variant="body1" style={{ color: 'red' }}>{error}</Typography>
+                        </div>
                     </div>
                 </Fade>
-                {
-                    loading &&
-                    <CircularProgress style={{ display: 'block', margin: '20px auto' }}></CircularProgress>
-                }
             </Paper>
         </div>
     );
